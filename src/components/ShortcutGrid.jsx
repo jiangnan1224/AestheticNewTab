@@ -57,16 +57,13 @@ const ShortcutGrid = ({ config, shortcuts }) => {
         }
     }, [totalPages, currentPage]);
 
-    // Simple and responsive wheel handler
+    // Wheel handler for mouse wheel (vertical) and trackpad (horizontal)
     useEffect(() => {
         if (totalPages <= 1) return;
 
         const handleWheel = (e) => {
             // Skip if page change is in progress
             if (isChangingRef.current) return;
-
-            // Only handle horizontal scrolling
-            if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
 
             const now = Date.now();
 
@@ -76,10 +73,29 @@ const ShortcutGrid = ({ config, shortcuts }) => {
             }
             lastTimeRef.current = now;
 
-            // Accumulate horizontal scroll
-            accumulatedRef.current += e.deltaX;
+            let scrollDelta = 0;
 
-            // Trigger page change at threshold (lowered for responsiveness)
+            // Detect input type:
+            // - Trackpad horizontal swipe: deltaX is dominant
+            // - Mouse wheel vertical: deltaY is present, deltaX is 0 or minimal
+            const isHorizontalSwipe = Math.abs(e.deltaX) > Math.abs(e.deltaY);
+            const isMouseWheel = e.deltaX === 0 && e.deltaY !== 0;
+
+            if (isHorizontalSwipe) {
+                // Trackpad horizontal swipe
+                scrollDelta = e.deltaX;
+            } else if (isMouseWheel) {
+                // Mouse wheel vertical scroll
+                scrollDelta = e.deltaY;
+            } else {
+                // Ignore diagonal or vertical trackpad scroll
+                return;
+            }
+
+            // Accumulate scroll
+            accumulatedRef.current += scrollDelta;
+
+            // Trigger page change at threshold
             const threshold = 50;
 
             if (accumulatedRef.current > threshold) {
